@@ -36,7 +36,7 @@ point and 8-bit rounding.
 
 ## CLI
 
-The CLI reads one hex color per line from stdin and writes the converted
+The CLI reads one color per line from stdin and writes the converted
 value, one line per input line, to stdout. It's a thin wrapper: the actual
 conversion and streaming logic lives in the `colorspace` package, not in
 `main.go`.
@@ -51,9 +51,20 @@ $ printf '#ff8800\n' | go run ./cmd/colorspace -to hsl
 H=32.0 S=1.000 L=0.500
 ```
 
-Supported targets: `lab`, `hsl`, `xyz`. Blank lines in the input are
-skipped; anything else that isn't a valid `#rrggbb` hex color is reported
-as an error with the offending line number.
+Each input line can be a hex color (`#ff8800`), an `rgb()` or `cmyk()`
+function (`rgb(255,136,0)`, `cmyk(0,47,100,0)`), or a CSS/X11 named color
+(`cornflowerblue`), matched case-insensitively:
+
+```
+$ printf 'rebeccapurple\nrgb(255,136,0)\ncmyk(0,47,100,0)\n' | go run ./cmd/colorspace -to hsl
+H=270.0 S=0.500 L=0.400
+H=32.0 S=1.000 L=0.500
+H=32.0 S=1.000 L=0.500
+```
+
+Supported targets: `lab`, `hsl`, `xyz`, `cmyk`. Blank lines in the input
+are skipped; anything else that doesn't match one of the input formats
+above is reported as an error with the offending line number.
 
 Because it streams, this works the same way on a file with three lines or
 three million:

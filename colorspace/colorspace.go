@@ -238,3 +238,33 @@ func (c RGB) Hex() string {
 	b := int(math.Round(clamp01(c.B) * 255))
 	return fmt.Sprintf("#%02x%02x%02x", r, g, b)
 }
+
+// CMYK is a color in the subtractive CMYK model, components in [0,1].
+type CMYK struct {
+	C, M, Y, K float64
+}
+
+// ToCMYK converts an sRGB color to CMYK, deriving K from the darkest of the
+// three channels. This is the common device-independent conversion, not a
+// press-specific one backed by an ICC profile.
+func (c RGB) ToCMYK() CMYK {
+	k := 1 - math.Max(c.R, math.Max(c.G, c.B))
+	if k >= 1 {
+		return CMYK{K: 1}
+	}
+	return CMYK{
+		C: (1 - c.R - k) / (1 - k),
+		M: (1 - c.G - k) / (1 - k),
+		Y: (1 - c.B - k) / (1 - k),
+		K: k,
+	}
+}
+
+// ToRGB converts a CMYK color back to sRGB, the inverse of RGB.ToCMYK.
+func (c CMYK) ToRGB() RGB {
+	return RGB{
+		R: clamp01((1 - c.C) * (1 - c.K)),
+		G: clamp01((1 - c.M) * (1 - c.K)),
+		B: clamp01((1 - c.Y) * (1 - c.K)),
+	}
+}

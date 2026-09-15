@@ -7,8 +7,9 @@ import (
 	"strings"
 )
 
-// StreamConvert reads one sRGB hex color per line from r and writes each
-// color, converted to the target space, as one line to w.
+// StreamConvert reads one color per line from r (hex, rgb(), cmyk(), or a
+// named color, see Parse) and writes each color, converted to the target
+// space, as one line to w.
 //
 // It holds at most one line in memory at a time (via bufio.Scanner) and
 // flushes the output writer once at the end, so a palette file with
@@ -37,7 +38,7 @@ func StreamConvert(r io.Reader, w io.Writer, target string) error {
 			continue
 		}
 
-		rgb, err := ParseHex(text)
+		rgb, err := Parse(text)
 		if err != nil {
 			return fmt.Errorf("line %d: %w", lineNo, err)
 		}
@@ -70,7 +71,12 @@ func converterFor(target string) (func(RGB) string, error) {
 			x := c.ToXYZ()
 			return fmt.Sprintf("X=%.4f Y=%.4f Z=%.4f", x.X, x.Y, x.Z)
 		}, nil
+	case "cmyk":
+		return func(c RGB) string {
+			k := c.ToCMYK()
+			return fmt.Sprintf("C=%.3f M=%.3f Y=%.3f K=%.3f", k.C, k.M, k.Y, k.K)
+		}, nil
 	default:
-		return nil, fmt.Errorf("colorspace: unknown target space %q (want lab, hsl, or xyz)", target)
+		return nil, fmt.Errorf("colorspace: unknown target space %q (want lab, hsl, xyz, or cmyk)", target)
 	}
 }
