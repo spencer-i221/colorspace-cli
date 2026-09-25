@@ -66,6 +66,18 @@ Supported targets: `lab`, `hsl`, `xyz`, `cmyk`. Blank lines in the input
 are skipped; anything else that doesn't match one of the input formats
 above is reported as an error with the offending line number.
 
+A line can hold more than one color, CSV-style, separated by commas. The
+commas inside `rgb()`/`cmyk()` don't count as separators, so mixing
+formats on one line is fine:
+
+```
+$ printf '#ff0000, cornflowerblue, rgb(0,255,0)\n' | go run ./cmd/colorspace -to hsl
+H=0.0 S=1.000 L=0.500, H=218.5 S=0.792 L=0.661, H=120.0 S=1.000 L=0.500
+```
+
+Each output line has as many comma-separated values as the input line had
+colors.
+
 Because it streams, this works the same way on a file with three lines or
 three million:
 

@@ -16,8 +16,9 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "colorspace converts colors read one per line from stdin.\n\n")
 		fmt.Fprintf(os.Stderr, "usage:\n  colorspace -to lab < colors.txt\n  cat colors.txt | colorspace -to hsl\n\n")
-		fmt.Fprintf(os.Stderr, "each input line is a hex color (\"#ff8800\"), an rgb() or cmyk()\n")
-		fmt.Fprintf(os.Stderr, "function (\"rgb(255,136,0)\", \"cmyk(0,47,100,0)\"), or a named color\n")
+		fmt.Fprintf(os.Stderr, "each input line holds one or more colors, separated by commas, where\n")
+		fmt.Fprintf(os.Stderr, "each color is a hex color (\"#ff8800\"), an rgb() or cmyk() function\n")
+		fmt.Fprintf(os.Stderr, "(\"rgb(255,136,0)\", \"cmyk(0,47,100,0)\"), or a named color\n")
 		fmt.Fprintf(os.Stderr, "(\"cornflowerblue\"); blank lines are skipped.\n\n")
 		flag.PrintDefaults()
 	}

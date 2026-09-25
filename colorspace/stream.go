@@ -7,9 +7,11 @@ import (
 	"strings"
 )
 
-// StreamConvert reads one color per line from r (hex, rgb(), cmyk(), or a
-// named color, see Parse) and writes each color, converted to the target
-// space, as one line to w.
+// StreamConvert reads one line at a time from r. Each line holds one or
+// more colors (hex, rgb(), cmyk(), or a named color, see Parse) separated
+// by commas, CSV-style, and StreamConvert writes the converted colors back
+// out comma-separated on a single corresponding line to w. A line with a
+// single color is just the CSV degenerate case of one field.
 //
 // It holds at most one line in memory at a time (via bufio.Scanner) and
 // flushes the output writer once at the end, so a palette file with
@@ -33,17 +35,27 @@ func StreamConvert(r io.Reader, w io.Writer, target string) error {
 	lineNo := 0
 	for scanner.Scan() {
 		lineNo++
-		text := strings.TrimSpace(scanner.Text())
-		if text == "" {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
 			continue
 		}
 
-		rgb, err := Parse(text)
-		if err != nil {
-			return fmt.Errorf("line %d: %w", lineNo, err)
+		fields := splitColorFields(line)
+		outs := make([]string, len(fields))
+		for i, field := range fields {
+			field = strings.TrimSpace(field)
+			if field == "" {
+				return fmt.Errorf("line %d: empty color field", lineNo)
+			}
+
+			rgb, err := Parse(field)
+			if err != nil {
+				return fmt.Errorf("line %d: %w", lineNo, err)
+			}
+			outs[i] = convert(rgb)
 		}
 
-		if _, err := fmt.Fprintln(bw, convert(rgb)); err != nil {
+		if _, err := fmt.Fprintln(bw, strings.Join(outs, ", ")); err != nil {
 			return err
 		}
 	}
@@ -52,6 +64,31 @@ func StreamConvert(r io.Reader, w io.Writer, target string) error {
 	}
 
 	return bw.Flush()
+}
+
+// splitColorFields splits a line into comma-separated color fields, the way
+// a CSV row would be, except it tracks paren depth so the commas inside an
+// rgb(...) or cmyk(...) function don't get mistaken for field separators.
+func splitColorFields(line string) []string {
+	var fields []string
+	depth := 0
+	start := 0
+	for i, r := range line {
+		switch r {
+		case '(':
+			depth++
+		case ')':
+			if depth > 0 {
+				depth--
+			}
+		case ',':
+			if depth == 0 {
+				fields = append(fields, line[start:i])
+				start = i + 1
+			}
+		}
+	}
+	return append(fields, line[start:])
 }
 
 func converterFor(target string) (func(RGB) string, error) {
